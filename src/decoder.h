@@ -42,7 +42,7 @@
 /* NOTE this uses stronly typed enums, a C++11 feature. This saves a bunch of typecasts while keeping UopType enums 1-byte long.
  * If you use gcc < 4.6 or some other compiler, either go back to casting or lose compactness in the layout.
  */
-enum UopType : uint8_t {UOP_GENERAL, UOP_LOAD, UOP_STORE, UOP_STORE_ADDR, UOP_FENCE};
+enum UopType : uint8_t {UOP_GENERAL, UOP_LOAD, UOP_STORE, UOP_STORE_ADDR, UOP_FENCE, UOP_APPEND /*CFI*/};
 
 struct DynUop {
     uint16_t rs[MAX_UOP_SRC_REGS];
@@ -96,6 +96,12 @@ struct BblInfo;  // defined in core.h
 #define REG_EXEC_TEMP (REG_STORE_ADDR_TEMP + MAX_INSTR_STORES)
 
 #define MAX_REGISTERS (REG_EXEC_TEMP + 64)
+
+// [CFI] This register holds the "base address" of where
+// SAFE_APPEND writes. This is separate from other registers, and
+// no one but SAFE_APPEND uses it. Dependences on register '0' are
+// always killed.
+#define REG_APPEND 0
 
 typedef std::vector<DynUop> DynUopVec;
 

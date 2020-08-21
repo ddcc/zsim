@@ -385,7 +385,7 @@ class OOOCore : public Core {
         //NOTE: We do not model the 10-entry fill buffer here; the weave model should take care
         //to not overlap more than 10 misses.
         ReorderBuffer<32, 4> loadQueue;
-        ReorderBuffer<32, 4> storeQueue;
+        ReorderBuffer<64, 4> storeQueue;
 
         uint32_t curCycleRFReads; //for RF read stalls
         uint32_t curCycleIssuedUops; //for uop issue limits
@@ -414,6 +414,8 @@ class OOOCore : public Core {
         CycleQueue<28> uopQueue;  // models issue queue
 
         uint64_t instrs, uops, bbls, approxInstrs, mispredBranches;
+        // [CFI]
+        uint64_t safeAppendInstructions;
 
 #ifdef OOO_STALL_STATS
         Counter profFetchStalls, profDecodeStalls, profIssueStalls;
@@ -432,6 +434,12 @@ class OOOCore : public Core {
         FwdEntry fwdArray[FWD_ENTRIES];
 
         OOOCoreRecorder cRec;
+
+        // [CFI] the SAFE_APPEND instruction appends to this address and
+        // increments it every time. For now, we consider the "base address"
+        // zero; in a real implementation, this is determined by the OS and is
+        // passed to the hardware through privileged registers.
+        uint64_t safeAppendLoc = 0;
 
     public:
         OOOCore(FilterCache* _l1i, FilterCache* _l1d, g_string& _name);

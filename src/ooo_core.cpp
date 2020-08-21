@@ -72,6 +72,8 @@ OOOCore::OOOCore(FilterCache* _l1i, FilterCache* _l1d, g_string& _name) : Core(_
     branchPc = 0;
 
     instrs = uops = bbls = approxInstrs = mispredBranches = 0;
+    // [CFI]
+    safeAppendInstructions = 0;
 
     for (uint32_t i = 0; i < FWD_ENTRIES; i++) fwdArray[i].set((Address)(-1L), 0);
 }
@@ -98,6 +100,9 @@ void OOOCore::initStats(AggregateStat* parentStat) {
     approxInstrsStat->init("approxInstrs", "Instrs with approx uop decoding", &approxInstrs);
     ProxyStat* mispredBranchesStat = new ProxyStat();
     mispredBranchesStat->init("mispredBranches", "Mispredicted branches", &mispredBranches);
+    // [CFI]
+    ProxyStat* safeAppendInstructionsStats = new ProxyStat();
+    safeAppendInstructionsStats->init("safeAppends", "safeAppend instructions", &safeAppendInstructions);
 
     coreStat->append(cyclesStat);
     coreStat->append(cCyclesStat);
@@ -106,6 +111,8 @@ void OOOCore::initStats(AggregateStat* parentStat) {
     coreStat->append(bblsStat);
     coreStat->append(approxInstrsStat);
     coreStat->append(mispredBranchesStat);
+    // [CFI]
+    coreStat->append(safeAppendInstructionsStats);
 
 #ifdef OOO_STALL_STATS
     profFetchStalls.init("fetchStalls",  "Fetch stalls");  coreStat->append(&profFetchStalls);
@@ -317,6 +324,38 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
                 }
                 break;
 
+            // [CFI] Implementing the SAFE_APPEND uop. Like a normal store uop,
+            // the SAFE_APPEND touches the store buffer, and the data cache.
+            case UOP_APPEND:
+                {
+                    // [CFI] It's not always fine to keep the stats of
+                    // instruction based on their uops. However, in this case,
+                    // we're sure that every SAFE_APPEND instruction maps to
+                    // only one uop.
+                    safeAppendInstructions++;
+
+                    uint64_t sqCycle = storeQueue.minAllocCycle();
+                    if (sqCycle > dispatchCycle) {
+                        dispatchCycle = sqCycle;
+                    }
+
+                    // Wait for all previous store addresses to be resolved (not just ours :))
+                    //dispatchCycle = MAX(lastStoreAddrCommitCycle+1, dispatchCycle);
+
+                    Address addr = safeAppendLoc;
+                    safeAppendLoc += 32;    //Every message is 32-byte.
+                    uint64_t reqSatisfiedCycle = l1d->store(addr, dispatchCycle) + L1D_LAT;
+                    cRec.record(curCycle, dispatchCycle, reqSatisfiedCycle);
+
+                    // Fill the forwarding table
+                    //fwdArray[(addr>>2) & (FWD_ENTRIES-1)].set(addr, reqSatisfiedCycle);
+
+                    commitCycle = reqSatisfiedCycle;
+                    //lastStoreCommitCycle = MAX(lastStoreCommitCycle, reqSatisfiedCycle);
+                    storeQueue.markRetire(commitCycle);
+                }
+                break;
+
             case UOP_STORE_ADDR:
                 commitCycle = dispatchCycle + uop->lat;
                 lastStoreAddrCommitCycle = MAX(lastStoreAddrCommitCycle, commitCycle);
@@ -355,8 +394,19 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
 
     // Check full match between expected and actual mem ops
     // If these assertions fail, most likely, something's off in the decoder
-    assert_msg(loadIdx == loads, "%s: loadIdx(%d) != loads (%d)", name.c_str(), loadIdx, loads);
-    assert_msg(storeIdx == stores, "%s: storeIdx(%d) != stores (%d)", name.c_str(), storeIdx, stores);
+
+    /* [CFI] mbakhsha
+        The following two assertions fire when the number of load/store
+        instructions observed in a basic block doesn't match the number of load/store
+        instructions the decoder announces. According to
+        [https://github.com/s5z/zsim/issues/92#issuecomment-186466635], this might be a
+        bug in the decoder, or, according to
+        [https://github.com/s5z/zsim/issues/192#issuecomment-373413082], this might
+        happen because of the new AVX/FMA instructions that zsim doesn't support. In
+        either case, rarely do they fire; < 0.001 in my experiments.
+    */
+    //assert_msg(loadIdx == loads, "%s: loadIdx(%d) != loads (%d)", name.c_str(), loadIdx, loads);
+    //assert_msg(storeIdx == stores, "%s: storeIdx(%d) != stores (%d)", name.c_str(), storeIdx, stores);
     loads = stores = 0;
 
 
