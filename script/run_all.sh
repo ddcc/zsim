@@ -3,13 +3,25 @@
 echo "You may want to run with llvm-lit first to ensure all input files are created"
 echo "Execute this script at 'build' directory."
 echo "Current directory: $(pwd)"
+echo "Usage: $0 METHOD_NAME CONCURRENT_JOBS"
 
-METHOD_NAME="BASELINE"  ## Change the name different experiments
-ZSIM_BINARY="/proj/PrescriptiveMem/hw-ccfi/simulations/zsim/build/opt/zsim"
-ZSIM_CONFIG="/proj/PrescriptiveMem/hw-ccfi/simulations/zsim/tests/cfi-ooo.cfg"
+ZSIM_BINARY="/proj/PrescriptiveMem/hw-ccfi/tests/zsim/build/opt/zsim"
+ZSIM_CONFIG="/proj/PrescriptiveMem/hw-ccfi/tests/zsim/tests/cfi-ooo.cfg"
+
+METHOD_NAME=${1?The method name (baseline, herqules) missing!}
+CONCURRENT_JOBS=${2?The number of concurrent jobs missing!}
+
+if [[ ! -f $ZSIM_BINARY ]]; then
+    echo "Couldn't find zsim binary"
+    exit 1
+fi
+
+if [[ ! -f $ZSIM_CONFIG ]]; then
+    echo "Couldn't find zsim config file"
+    exit 1
+fi
+
 RES_DIR_PREFIX="$(pwd)/sim-res-$METHOD_NAME-ref"
-
-CONCURRENT_JOBS=${1?The number of concurrent jobs is missed!}
 
 simulate() {
     sleep 1
