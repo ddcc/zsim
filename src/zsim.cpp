@@ -575,8 +575,8 @@ VOID Instruction(INS ins) {
      * is never emitted by any x86 compiler, as they use other (recommended) nop
      * instructions or sequences.
      */
-    // [CFI] mbakhsha: We have tones of magic operations with CFI. I commented
-    // out the following for simulation performance.
+    // [CFI] We have tones of magic operations with CFI. I commented out the
+    // following for simulation performance.
     //if (INS_IsXchg(ins) && INS_OperandReg(ins, 0) == REG_RCX && INS_OperandReg(ins, 1) == REG_RCX) {
         //INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR) HandleMagicOp, IARG_THREAD_ID, IARG_REG_VALUE, REG_ECX, IARG_END);
     //}

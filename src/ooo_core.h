@@ -436,9 +436,9 @@ class OOOCore : public Core {
         OOOCoreRecorder cRec;
 
         // [CFI] the SAFE_APPEND instruction appends to this address and
-        // increments it every time. For now, we consider the "base address"
-        // zero; in a real implementation, this is determined by the OS and is
-        // passed to the hardware through privileged registers.
+        // increments it every time. We consider the "base address" zero; in a
+        // real implementation, this is determined by the OS and is passed to
+        // the hardware through privileged registers.
         uint64_t safeAppendLoc = 0;
 
     public:

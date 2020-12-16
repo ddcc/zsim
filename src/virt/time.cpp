@@ -198,9 +198,9 @@ PostPatchFn PatchNanosleep(PrePatchArgs args) {
     // FIXME, shouldn't this use safeCopy??
     if (!ts) return NullPostPatch;  // kernel will return EFAULT
 
-    // [Kasraa] The following line was 'return false;' There were problems
-    // casting bool to the appropriate return type of this function; I changed
-    // it to int to make my day easier!
+    // The following line was 'return false;' There were problems casting bool
+    // to the appropriate return type of this function; I changed it to int to
+    // make my day easier!
     if (ts->tv_sec < 0 || ts->tv_nsec < 0 || ts->tv_nsec > 999999999) return 0;  // kernel will return EINVAL
 
     uint64_t waitNsec = timespecToNs(*ts);

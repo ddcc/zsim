@@ -330,8 +330,8 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
                 {
                     // [CFI] It's not always fine to keep the stats of
                     // instruction based on their uops. However, in this case,
-                    // we're sure that every SAFE_APPEND instruction maps to
-                    // only one uop.
+                    // we're sure that every SAFE_APPEND instruction translates
+                    // to only one uop.
                     safeAppendInstructions++;
 
                     uint64_t sqCycle = storeQueue.minAllocCycle();
@@ -395,13 +395,13 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
     // Check full match between expected and actual mem ops
     // If these assertions fail, most likely, something's off in the decoder
 
-    /* [CFI] mbakhsha
+    /* [CFI]
         The following two assertions fire when the number of load/store
         instructions observed in a basic block doesn't match the number of load/store
         instructions the decoder announces. According to
-        [https://github.com/s5z/zsim/issues/92#issuecomment-186466635], this might be a
+        <https://github.com/s5z/zsim/issues/92#issuecomment-186466635>, this might be a
         bug in the decoder, or, according to
-        [https://github.com/s5z/zsim/issues/192#issuecomment-373413082], this might
+        <https://github.com/s5z/zsim/issues/192#issuecomment-373413082>, this might
         happen because of the new AVX/FMA instructions that zsim doesn't support. In
         either case, rarely do they fire; < 0.001 in my experiments.
     */

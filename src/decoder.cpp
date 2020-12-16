@@ -251,8 +251,6 @@ void Decoder::emitXchg(Instr& instr, DynUopVec& uops) {
 
 void Decoder::emitConditionalMove(Instr& instr, DynUopVec& uops, uint32_t lat, uint8_t ports) {
     uint32_t initialUops = uops.size();
-    // [CFI] mbakhsha: 447.dealII was firing the following assertion
-    //assert(instr.numOutRegs == 1); //always move to reg
     assert(instr.numStores == 0);
 
     if (instr.numLoads) {
@@ -269,8 +267,6 @@ void Decoder::emitConditionalMove(Instr& instr, DynUopVec& uops, uint32_t lat, u
         //TODO: Make this follow codepath below + load
     } else {
         assert(instr.numInRegs == 2);
-        // [CFI] mbakhsha: 447.dealII is rarely firing the following assertion
-        //assert(instr.numOutRegs == 1);
         uint32_t flagsReg = instr.inRegs[1];
         //Since this happens in 2 instructions, we'll assume we need to read the output register
         emitExecUop(flagsReg, instr.inRegs[0], REG_EXEC_TEMP, 0, uops, 1, ports);
@@ -442,8 +438,6 @@ void Decoder::emitDiv(Instr& instr, DynUopVec& uops) {
 
     //assert(srcs == 3); //there is a variant of div that uses only 2 regs --> see below
     //assert(dsts == 3);
-    // [CFI] mbakhsha: 502.gcc is rarely firing the following assertion
-    //assert(instr.numInRegs > 1);
 
     uint32_t width = INS_OperandWidth(instr.ins, 1);
     uint32_t lat = 0;
@@ -574,16 +568,14 @@ bool Decoder::decodeInstr(INS ins, DynUopVec& uops) {
                     break;
                 case XO(XCHG):
                     assert(INS_IsXchg(ins));
-                    // [CFI] mbakhsha: If the following condition holds, then
-                    // it's a SAFE_APPEND instruction. For a SAFE_APPEND
-                    // instruction, we generate just one uop, which store the
-                    // content of a reg (here, REG_RCX) into an
-                    // only-visible-to-hardware location.
+                    // [CFI] If the following condition holds, then it's a
+                    // SAFE_APPEND instruction. For a SAFE_APPEND instruction,
+                    // we generate just one uop.
                     if (INS_IsXchg(ins) && INS_OperandReg(ins, 0) == REG_RCX && INS_OperandReg(ins, 1) == REG_RCX) {
                         DynUop uop;
                         uop.clear();
                         uop.rs[0] = REG_APPEND;
-                        uop.rs[1] = REG_APPEND; //Don't impose dependency to other instructions.
+                        uop.rs[1] = REG_APPEND;
                         uop.portMask = PORT_4;
                         uop.type = UOP_APPEND;
                         uops.push_back(uop);

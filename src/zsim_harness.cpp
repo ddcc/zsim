@@ -201,7 +201,7 @@ static time_t startTime;
 static time_t lastHeartbeatTime;
 static uint64_t lastCycles = 0;
 
-static void printHeartbeat(GlobSimInfo* zinfo) {
+static void printHeartbeat(GlobSimInfo* zinfo, std::string heartbeatFileName = "") {
     uint64_t cycles = zinfo->numPhases*zinfo->phaseLength;
     time_t curTime = time(nullptr);
     time_t elapsedSecs = curTime - startTime;
@@ -214,7 +214,7 @@ static void printHeartbeat(GlobSimInfo* zinfo) {
     char hostname[256];
     gethostname(hostname, 256);
 
-    std::ofstream hb("heartbeat");
+    std::ofstream hb(heartbeatFileName.c_str());
     hb << "Running on: " << hostname << std::endl;
     hb << "Start time: " << ctime_r(&startTime, time);
     hb << "Heartbeat time: " << ctime_r(&curTime, time);
@@ -397,6 +397,10 @@ int main(int argc, char *argv[]) {
 
     if (numProcs == 0) panic("No process config found. Config file needs at least a process0 entry");
 
+    // Sometimes I need to change the name of heartbeat file
+    const char* simulationName = conf.get<const char*>("sim.simulationName", "");
+    std::string heartbeatFileName = std::string("heartbeat") + (strlen(simulationName) > 0 ? "_" : "") + simulationName;
+
     //Wait for all processes to finish
     int sleepLength = 10;
     GlobSimInfo* zinfo = nullptr;
@@ -416,7 +420,7 @@ int main(int argc, char *argv[]) {
             info("Attached to global heap");
         }
 
-        printHeartbeat(zinfo);  // ensure we dump hostname etc on early crashes
+        printHeartbeat(zinfo, heartbeatFileName);  // ensure we dump hostname etc on early crashes
 
         int left = sleep(sleepLength);
         int secsSlept = sleepLength - left;
@@ -448,7 +452,7 @@ int main(int argc, char *argv[]) {
             } //otherwise, activeProcs == 0; we're done
         }
 
-        printHeartbeat(zinfo);
+        printHeartbeat(zinfo, heartbeatFileName);
 
         //This solves a weird race in multiprocess where SIGCHLD does not always fire...
         int cpid = -1;

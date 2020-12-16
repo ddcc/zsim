@@ -790,11 +790,18 @@ static void PostInitStats(bool perProcessDir, Config& config) {
     string pathStr = zinfo->outputDir;
     pathStr += "/";
 
+    // Sometimes I need to change the name of output files (stats).
+    const char* simulationName = config.get<const char*>("sim.simulationName", "");
+    string pStatsFileName = pathStr + "zsim" + (strlen(simulationName) > 0 ? "_" : "") + simulationName + ".h5";
+    string evStatsFileName = pathStr + "zsim-ev" + (strlen(simulationName) > 0 ? "_" : "") + simulationName + ".h5";
+    string cmpStatsFileName = pathStr + "zsim-cmp" + (strlen(simulationName) > 0 ? "_" : "") + simulationName + ".h5";
+    string statsFileName = pathStr + "zsim" + (strlen(simulationName) > 0 ? "_" : "") + simulationName + ".out";
+
     // Absolute paths for stats files. Note these must be in the global heap.
-    const char* pStatsFile = gm_strdup((pathStr + "zsim.h5").c_str());
-    const char* evStatsFile = gm_strdup((pathStr + "zsim-ev.h5").c_str());
-    const char* cmpStatsFile = gm_strdup((pathStr + "zsim-cmp.h5").c_str());
-    const char* statsFile = gm_strdup((pathStr + "zsim.out").c_str());
+    const char* pStatsFile = gm_strdup(pStatsFileName.c_str());
+    const char* evStatsFile = gm_strdup(evStatsFileName.c_str());
+    const char* cmpStatsFile = gm_strdup(cmpStatsFileName.c_str());
+    const char* statsFile = gm_strdup(statsFileName.c_str());
 
     if (zinfo->statsPhaseInterval) {
         const char* periodicStatsFilter = config.get<const char*>("sim.periodicStatsFilter", "");
@@ -1015,7 +1022,11 @@ void SimInit(const char* configFile, const char* outputDir, uint32_t shmid) {
 
     //Write config out
     bool strictConfig = config.get<bool>("sim.strictConfig", true); //if true, panic on unused variables
-    config.writeAndClose((string(zinfo->outputDir) + "/out.cfg").c_str(), strictConfig);
+
+    // Sometimes I need to change the name of output files
+    const char* simulationName = config.get<const char*>("sim.simulationName", "");
+    string outCfgFileName = std::string("/out") + (strlen(simulationName) > 0 ? "_" : "") + simulationName + ".cfg";
+    config.writeAndClose((string(zinfo->outputDir) + outCfgFileName).c_str(), strictConfig);
 
     zinfo->contentionSim->postInit();
 
